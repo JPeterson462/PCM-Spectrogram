@@ -2,6 +2,7 @@ package com.digiturtle.pcm;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
@@ -12,6 +13,7 @@ import javafx.application.Platform;
 import javafx.scene.Group;
 import javafx.scene.Scene;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Rectangle;
 import javafx.stage.Stage;
 
@@ -20,17 +22,24 @@ public class SpectrogramGraph extends Application {
 	private Spectrogram spectrogram;
 	
 	public void start(Stage stage) {
-		float width = 1000, height = 500, max = 300_000;
-		spectrogram = new Spectrogram(width, height / 2, max);
+		final int rWidth = 100, rHeight = 49;
+		float width = rWidth * Spectrogram.SAMPLE_WIDTH, height = rHeight * Spectrogram.SAMPLE_WIDTH, max = 700_000;
+		Paint background = Color.BLACK, foreground = Color.LIME;
+		spectrogram = new Spectrogram((int) (width / Spectrogram.SAMPLE_WIDTH));
 		Group root = new Group();
-		Scene scene = new Scene(root, 1000, 500, Color.BLACK);
+		Scene scene = new Scene(root, width, height, background);
 		stage.setTitle("Spectrogram");
 		stage.setScene(scene);
 		stage.show();
-		for (int i = 0 ; i < spectrogram.getPoints().length; i++) {
-			Rectangle r = new Rectangle(spectrogram.getPoints()[i].x + 1, spectrogram.getPoints()[i].y, spectrogram.getSampleWidth() - 2, 10);
-			r.setFill(Color.GREEN);
-			root.getChildren().add(r);
+		Rectangle[][] rectangles = new Rectangle[rWidth][rHeight];
+		for (int i = 0; i < rWidth; i++) {
+			for (int j = 0; j < rHeight; j++) {
+				Rectangle r = new Rectangle(i * Spectrogram.SAMPLE_WIDTH + 1, j * Spectrogram.SAMPLE_WIDTH + 1, 
+						Spectrogram.SAMPLE_WIDTH - 2, Spectrogram.SAMPLE_WIDTH - 2);
+				r.setFill(background);
+				root.getChildren().add(r);
+				rectangles[i][j] = r;
+			}
 		}
 		final AudioFileReader reader;
 		try {
@@ -48,13 +57,21 @@ public class SpectrogramGraph extends Application {
 						} catch (IOException e) {
 							e.printStackTrace();
 						}
-						spectrogram.update(DELTA);
-						Point[] points = spectrogram.getPoints();
-						for (int i = 0; i < points.length; i++) {
-							float h = points[i].y + 10;
-							Rectangle r = (Rectangle) root.getChildren().get(i);
-							r.setY((height - h) / 2);
-							r.setHeight(h);
+						spectrogram.update(DELTA * (reader.getSampleRate() / 1000));
+						ArrayList<Float> samples = spectrogram.getStream();
+						for (int i = 0; i < rWidth; i++) {
+							int height = Math.max(1, (int) ((samples.get(i) / max) * rHeight));
+							System.out.println(samples.get(i));
+							int offset = (rHeight - height) / 2;
+							for (int j = 0; j < offset; j++) {
+								rectangles[i][j].setFill(background);
+							}
+							for (int j = offset; j < rHeight - offset; j++) {
+								rectangles[i][j].setFill(foreground);
+							}
+							for (int j = rHeight - offset; j < rHeight; j++) {
+								rectangles[i][j].setFill(background);
+							}
 						}
 					}
 				});
