@@ -59,17 +59,31 @@ public class SpectrogramGraph extends Application {
 						}
 						spectrogram.update(DELTA * (reader.getSampleRate() / 1000));
 						ArrayList<Float> samples = spectrogram.getStream();
-						for (int i = 0; i < rWidth; i++) {
-							int height = Math.max(1, (int) ((samples.get(i) / max) * rHeight));
+						for (int i = 0; i < rWidth && i < samples.size(); i++) {
+							int height = Math.abs(Math.max(1, (int) ((samples.get(i) / max) * rHeight)));
 							System.out.println(samples.get(i));
-							int offset = (rHeight - height) / 2;
-							for (int j = 0; j < offset; j++) {
+							int offset = Math.max(0, (rHeight - height) / 2);
+							height = Math.min(height, rHeight);
+							for (int j = 0; j < offset && j < rHeight; j++) {
 								rectangles[i][j].setFill(background);
 							}
-							for (int j = offset; j < rHeight - offset; j++) {
+							for (int j = offset; j < height + offset && j < rHeight; j++) {
 								rectangles[i][j].setFill(foreground);
 							}
-							for (int j = rHeight - offset; j < rHeight; j++) {
+							for (int j = height + offset; j < rHeight && j < rHeight; j++) {
+								rectangles[i][j].setFill(background);
+							}
+						}
+						for (int i = samples.size(); i < rWidth; i++) {
+							int height = 1;
+							int offset = (rHeight - height) / 2;
+							for (int j = 0; j < offset && j < rHeight; j++) {
+								rectangles[i][j].setFill(background);
+							}
+							for (int j = offset; j < height + offset && j < rHeight; j++) {
+								rectangles[i][j].setFill(foreground);
+							}
+							for (int j = rHeight - offset; j < rHeight && j < rHeight; j++) {
 								rectangles[i][j].setFill(background);
 							}
 						}
